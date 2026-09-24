@@ -20,7 +20,7 @@ import frontmatter
 from sqlalchemy.orm import Session
 
 from app.db.models.chunks import Chunk
-from app.db.models.documents import Document
+from app.db.models.documents import Document, DocumentVersion
 from app.rag.chunking import chunk_markdown
 from app.rag.embeddings import EmbeddingProvider
 
@@ -45,7 +45,17 @@ def ingest_document(
     category: str,
     content: str,
     embedding_provider: EmbeddingProvider,
+    changed_by: str | None = None,
+    reason: str | None = None,
+    review_item_id: int | None = None,
 ) -> IngestResult:
+    """`changed_by`/`reason`/`review_item_id` solo importan cuando el
+    documento YA existe: antes de sobrescribir su contenido, se guarda el
+    texto anterior en `document_versions` (ver sección 5 del diseño). La
+    ingesta inicial desde Markdown (Fase 1) no los pasa — un `make ingest`
+    normal no genera historial de versiones, porque no hay un "revisor"
+    detrás de esa carga inicial.
+    """
     content_hash = hashlib.sha256(content.encode()).hexdigest()
     document = session.query(Document).filter_by(slug=slug).one_or_none()
 
@@ -55,6 +65,18 @@ def ingest_document(
         )
 
     action = "updated" if document is not None else "created"
+
+    if document is not None and changed_by is not None:
+        session.add(
+            DocumentVersion(
+                document_id=document.id,
+                content=document.content,  # el texto ANTERIOR, antes de sobrescribirlo
+                changed_by=changed_by,
+                reason=reason or "",
+                review_item_id=review_item_id,
+            )
+        )
+
     if document is None:
         document = Document(
             slug=slug, title=title, category=category, content=content, content_hash=content_hash
@@ -68,22 +90,38 @@ def ingest_document(
 
     session.flush()  # asegura document.id para las FKs de los chunks nuevos
 
-    existing_by_hash = {c.content_hash: c for c in document.chunks}
     new_chunks = chunk_markdown(
         content,
         max_tokens=CHUNK_MAX_TOKENS,
         overlap_tokens=CHUNK_OVERLAP_TOKENS,
         count_tokens=embedding_provider.count_tokens,
     )
+    kept_hashes = {r.content_hash for r in new_chunks}
+
+    # `chunk_index` tiene una unique constraint por documento, así que
+    # reordenar/borrar chunks existentes puede chocar transitoriamente con
+    # una fila vieja que todavía no se borró/movió — Postgres valida esa
+    # constraint al ejecutar cada statement, no al final de la transacción.
+    # Por eso: primero se borran los chunks que ya no corresponden a ningún
+    # contenido actual, y los que se reusan se pasan por un índice temporal
+    # negativo (nunca choca con los índices reales, que son >= 0) antes de
+    # asignarles su posición final.
+    for old_chunk in list(document.chunks):
+        if old_chunk.content_hash not in kept_hashes:
+            session.delete(old_chunk)
+    session.flush()
+
+    existing_by_hash = {c.content_hash: c for c in document.chunks}
+    for chunk in existing_by_hash.values():
+        chunk.chunk_index = -chunk.id
+    session.flush()
 
     rows: list[Chunk] = []
     pending_embeddings: list[tuple[int, str]] = []  # (índice en `rows`, texto a embeber)
-    kept_hashes: set[str] = set()
     reused = 0
     recomputed = 0
 
     for index, result in enumerate(new_chunks):
-        kept_hashes.add(result.content_hash)
         existing_chunk = existing_by_hash.get(result.content_hash)
 
         if existing_chunk is not None:
@@ -115,10 +153,6 @@ def ingest_document(
         vectors = embedding_provider.embed_passages([text for _, text in pending_embeddings])
         for (row_index, _), vector in zip(pending_embeddings, vectors, strict=True):
             rows[row_index].embedding = vector
-
-    for old_chunk in list(document.chunks):
-        if old_chunk.content_hash not in kept_hashes:
-            session.delete(old_chunk)
 
     return IngestResult(
         slug=slug, action=action, chunks_reused=reused, chunks_recomputed=recomputed

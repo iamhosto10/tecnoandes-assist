@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.db.base import Base
+from app.db.models.chunks import Chunk
 
 
 class Query(Base):
@@ -71,3 +72,4 @@ class QueryChunk(Base):
     rrf_score: Mapped[float] = mapped_column(Float)
 
     query: Mapped[Query] = relationship(back_populates="retrieved_chunks")
+    chunk: Mapped[Chunk] = relationship()

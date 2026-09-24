@@ -1,10 +1,14 @@
 from fastapi import FastAPI
 
 from app.api.ask import router as ask_router
+from app.api.documents import router as documents_router
+from app.api.review import router as review_router
 from app.core.config import get_settings
 
 app = FastAPI(title="TecnoAndes Assist API")
 app.include_router(ask_router)
+app.include_router(review_router)
+app.include_router(documents_router)
 
 
 @app.get("/health")

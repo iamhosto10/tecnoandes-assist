@@ -23,6 +23,12 @@ make seed-demo    # Fase 7 — carga consultas de ejemplo para la demo
 
 Backend fuera de Docker: `cd backend && uv sync && uv run uvicorn app.main:app --reload`.
 
+Si agregas una dependencia nueva a `backend/pyproject.toml`, el contenedor
+del backend no la recoge solo con `--reload` (eso solo reinicia los
+workers de uvicorn, no vuelve a correr `uv sync`) — hace falta
+`docker compose restart backend` (o `make up` de nuevo) para que la
+sincronice.
+
 ## Stack y convenciones
 
 - **Backend**: Python 3.12 (fijado con `uv`), FastAPI **síncrono** (endpoints `def`,
@@ -84,6 +90,21 @@ Backend fuera de Docker: `cd backend && uv sync && uv run uvicorn app.main:app -
    si no hay ninguna credencial configurada** (confirmado corriendo el
    endpoint real sin `ANTHROPIC_API_KEY`). `generate_answer` atrapa ambos —
    de lo contrario esa falla de configuración se filtraba como un 500 crudo.
+10. **`review_items` se crea automáticamente en `/ask`** cuando la decisión
+    no es "direct" — no hay un paso manual ni un job aparte; el mismo
+    request que responde al cliente deja el caso listo en la cola.
+    `reason` reusa el `rule_applied` de la regla de confianza que disparó,
+    sin inventar una segunda taxonomía de motivos.
+11. **`ingest_document` borra antes de insertar, nunca al revés.**
+    `chunk_index` tiene una unique constraint por documento que Postgres
+    valida al ejecutar cada statement (no al final de la transacción) —
+    intentar insertar el chunk nuevo antes de borrar el viejo con el mismo
+    índice revienta esa constraint incluso si el borrado iba a pasar en la
+    misma transacción. Se corrige borrando los chunks obsoletos primero
+    (con flush) y pasando los reusados por un índice temporal negativo
+    antes de asignarles su posición final. Encontrado por los tests de
+    integración de `PUT /documents/{id}` al reemplazar todo el contenido
+    de un documento.
 
 ## Esquema de base de datos (visión completa; se crea de forma incremental)
 
@@ -103,7 +124,7 @@ Se espera confirmación antes de pasar a la siguiente fase.
 - [x] Fase 0 — Plan y esqueleto
 - [x] Fase 1 — Conocimiento y búsqueda
 - [x] Fase 2 — Generación y confianza
-- [ ] Fase 3 — Revisión en el backend
+- [x] Fase 3 — Revisión en el backend
 - [ ] Fase 4 — Chat del cliente
 - [ ] Fase 5 — Consola del revisor
 - [ ] Fase 6 — Evaluación
