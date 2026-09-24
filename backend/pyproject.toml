@@ -14,6 +14,7 @@ dependencies = [
     "pgvector>=0.3.6",
     "anthropic>=0.40",
     "sentence-transformers>=3.3",
+    "torch>=2.2",
 ]
 
 [dependency-groups]
@@ -33,7 +34,10 @@ package = false
 # (la imagen Docker) se fuerza el índice CPU-only de PyTorch; en macOS local
 # el wheel nativo ya no trae esas dependencias, así que no hace falta.
 [tool.uv.sources]
-torch = [{ index = "pytorch-cpu", marker = "platform_system == 'Linux'" }]
+torch = [
+    { index = "pytorch-cpu", marker = "sys_platform == 'linux'" },
+    { index = "pytorch-cpu", marker = "sys_platform != 'linux'" },
+]
 
 [[tool.uv.index]]
 name = "pytorch-cpu"

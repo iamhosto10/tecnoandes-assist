@@ -2,6 +2,11 @@
 
 up:
 	docker compose up -d --build
+	# Los scripts (ingest/search/eval/migrate/test/lint) corren en el host, no
+	# en el contenedor, para que el editor tenga autocompletado/type-checking
+	# reales. `uv sync` aquí es lo que hace que "make up && make ingest" sea
+	# de verdad un solo paso.
+	cd backend && uv sync
 
 down:
 	docker compose down

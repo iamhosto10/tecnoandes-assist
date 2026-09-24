@@ -27,7 +27,12 @@ services:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./backend:/app
-      - backend-venv:/app/.venv
+      # Volumen anónimo: protege el venv horneado en la imagen de que el bind
+      # mount de arriba lo tape con un backend/.venv del host (que puede ser
+      # de otro SO/arquitectura). A diferencia de un volumen con nombre, uno
+      # anónimo se recrea limpio cada vez que el contenedor se reconstruye,
+      # así que nunca arrastra dependencias de una build anterior.
+      - /app/.venv
     depends_on:
       db:
         condition: service_healthy
@@ -35,4 +40,3 @@ services:
 
 volumes:
   pgdata:
-  backend-venv:
