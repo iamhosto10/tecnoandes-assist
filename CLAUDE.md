@@ -61,6 +61,13 @@ Backend fuera de Docker: `cd backend && uv sync && uv run uvicorn app.main:app -
 4. **Auth de la consola de revisión**: token único en `.env`
    (`REVIEW_CONSOLE_TOKEN`). Es solo para la demo; documentado en
    `docs/adr/` qué se usaría en producción (OAuth/sesiones por usuario).
+5. **RRF en Python, no en el SQL.** `hybrid_search` corre dos consultas simples
+   (vector, full-text) y fusiona los rankings con `reciprocal_rank_fusion`, una
+   función pura en `app/rag/retrieval.py` — así el SQL se puede depurar por
+   separado y la fórmula de RRF se puede testear sin base de datos.
+6. **`torch` fijado al índice CPU-only** de PyTorch (`[tool.uv.sources]` en
+   `backend/pyproject.toml`). El wheel por defecto de PyPI arrastra ~2GB de
+   paquetes `nvidia-*` en Linux que nunca se usan (embeddings corren en CPU).
 
 ## Esquema de base de datos (visión completa; se crea de forma incremental)
 
@@ -78,7 +85,7 @@ hecho, pasos para probarlo manualmente, y un commit en Conventional Commits.
 Se espera confirmación antes de pasar a la siguiente fase.
 
 - [x] Fase 0 — Plan y esqueleto
-- [ ] Fase 1 — Conocimiento y búsqueda
+- [x] Fase 1 — Conocimiento y búsqueda
 - [ ] Fase 2 — Generación y confianza
 - [ ] Fase 3 — Revisión en el backend
 - [ ] Fase 4 — Chat del cliente

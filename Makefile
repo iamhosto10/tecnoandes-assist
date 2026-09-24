@@ -32,14 +32,16 @@ lint:
 # eval    -> Fase 6 (backend/scripts/evaluate.py)
 # seed-demo -> Fase 7 (backend/scripts/seed_demo.py)
 
+# PYTHONPATH=. porque los scripts corren como `python scripts/x.py` (no como
+# módulo empaquetado): sin esto, `import app...` no encuentra el paquete.
 ingest:
-	cd backend && uv run python scripts/ingest.py
+	cd backend && PYTHONPATH=. uv run python scripts/ingest.py
 
 search:
-	cd backend && uv run python scripts/search.py "$(q)"
+	cd backend && PYTHONPATH=. uv run python scripts/search.py "$(q)"
 
 eval:
-	cd backend && uv run python scripts/evaluate.py
+	cd backend && PYTHONPATH=. uv run python scripts/evaluate.py
 
 seed-demo:
-	cd backend && uv run python scripts/seed_demo.py
+	cd backend && PYTHONPATH=. uv run python scripts/seed_demo.py

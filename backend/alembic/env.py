@@ -2,13 +2,12 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
+# Importa todos los modelos para que se registren en Base.metadata antes de
+# que Alembic compare el estado de la DB (autogenerate los necesita).
+import app.db.models  # noqa: F401,E402
 from alembic import context
 from app.core.config import get_settings
 from app.db.base import Base
-
-# Importar los módulos de modelos aquí para que se registren en Base.metadata
-# antes de que Alembic compare el estado de la DB (autogenerate los necesita).
-# from app.db.models import documents, chunks, queries, review, evaluation  # noqa: E501
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
