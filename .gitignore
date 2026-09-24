@@ -1,0 +1,27 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node
+node_modules/
+.next/
+out/
+.turbo/
+
+# OS
+.DS_Store
+
+# Claude Code local state (not shared project config)
+.claude/settings.local.json
+.claude/*.lock
+
+# Editors
+.vscode/
+.idea/
