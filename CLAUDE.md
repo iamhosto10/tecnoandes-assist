@@ -68,6 +68,22 @@ Backend fuera de Docker: `cd backend && uv sync && uv run uvicorn app.main:app -
 6. **`torch` fijado al índice CPU-only** de PyTorch (`[tool.uv.sources]` en
    `backend/pyproject.toml`). El wheel por defecto de PyPI arrastra ~2GB de
    paquetes `nvidia-*` en Linux que nunca se usan (embeddings corren en CPU).
+7. **`needs_human`/`citation_valid` son compuertas duras, no señales ponderadas.**
+   Solo `retrieval_score`, `retrieval_margin` y `support` entran en el puntaje
+   0-100; las otras dos deciden el enrutamiento directamente en `rules.py`
+   (ver sección 9 del diseño original). El puntaje igual se calcula y se
+   guarda siempre, aunque una regla dura ya haya decidido, para el audit.
+8. **"review" nunca muestra la respuesta cruda del modelo; "escalate" sí.**
+   Cuando la decisión es `review` (sin soporte, puntaje bajo, o error de
+   generación) el cliente ve un mensaje de respaldo genérico — no lo que
+   escribió el modelo, aunque sea válido, porque `support=none`/error
+   significan que no se confía en esa respuesta. Cuando es `escalate`
+   (`needs_human=true`) sí se muestra la respuesta del modelo, porque el
+   prompt lo instruye a redactarla ya pensando en el traspaso a un humano.
+9. **El SDK de Anthropic puede lanzar `TypeError`, no solo `anthropic.APIError`,
+   si no hay ninguna credencial configurada** (confirmado corriendo el
+   endpoint real sin `ANTHROPIC_API_KEY`). `generate_answer` atrapa ambos —
+   de lo contrario esa falla de configuración se filtraba como un 500 crudo.
 
 ## Esquema de base de datos (visión completa; se crea de forma incremental)
 
@@ -86,7 +102,7 @@ Se espera confirmación antes de pasar a la siguiente fase.
 
 - [x] Fase 0 — Plan y esqueleto
 - [x] Fase 1 — Conocimiento y búsqueda
-- [ ] Fase 2 — Generación y confianza
+- [x] Fase 2 — Generación y confianza
 - [ ] Fase 3 — Revisión en el backend
 - [ ] Fase 4 — Chat del cliente
 - [ ] Fase 5 — Consola del revisor
