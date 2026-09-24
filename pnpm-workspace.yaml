@@ -1,3 +1,10 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# create-next-app pide aprobar los build scripts de estos paquetes nativos
+# (sharp para next/image, unrs-resolver para el tooling de lint) — vive en
+# la raíz para que aplique a todo el workspace, no solo a apps/chat.
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver

@@ -5,7 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.api.schemas import ConfidenceBreakdown, SourceChunk
+from app.api.schemas import ConfidenceBreakdown, RuleApplied, SourceChunk
+from app.confidence.rules import Decision
 
 ActionType = Literal[
     "approve",
@@ -16,15 +17,18 @@ ActionType = Literal[
     "discard",
 ]
 
+# Espejo de _STATUS_BY_ACTION en app/review/actions.py, más el estado inicial.
+ReviewStatus = Literal["pending", "approved", "corrected", "escalated", "discarded"]
+
 
 class ReviewItemSummary(BaseModel):
     id: int
-    status: str
-    reason: str
+    status: ReviewStatus
+    reason: RuleApplied
     created_at: datetime
     resolved_at: datetime | None
     question: str
-    decision: str
+    decision: Decision
     confidence_score: float
 
 
@@ -37,7 +41,7 @@ class ReviewItemListResponse(BaseModel):
 
 class ReviewActionOut(BaseModel):
     id: int
-    action_type: str
+    action_type: ActionType
     note: str | None
     actor: str
     document_id: int | None
@@ -46,16 +50,16 @@ class ReviewActionOut(BaseModel):
 
 class ReviewItemDetail(BaseModel):
     id: int
-    status: str
-    reason: str
+    status: ReviewStatus
+    reason: RuleApplied
     created_at: datetime
     resolved_at: datetime | None
     resolved_by: str | None
     question: str
     answer: str
     raw_model_answer: str | None
-    decision: str
-    rule_applied: str
+    decision: Decision
+    rule_applied: RuleApplied
     confidence: ConfidenceBreakdown
     sources: list[SourceChunk]
     actions: list[ReviewActionOut]
@@ -91,7 +95,7 @@ class ReviewActionRequest(BaseModel):
 
 class RetestSnapshot(BaseModel):
     answer: str
-    decision: str
+    decision: Decision
     confidence_score: float
     support: str | None
 

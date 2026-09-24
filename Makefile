@@ -1,4 +1,4 @@
-.PHONY: up down logs migrate db-shell test lint ingest search eval seed-demo
+.PHONY: up down logs migrate db-shell test lint ingest search eval seed-demo chat
 
 up:
 	docker compose up -d --build
@@ -45,3 +45,8 @@ eval:
 
 seed-demo:
 	cd backend && PYTHONPATH=. uv run python scripts/seed_demo.py
+
+# Fase 4 — chat del cliente (Next.js). Necesita el backend en localhost:8000.
+chat:
+	pnpm install
+	pnpm --filter @tecnoandes/chat dev

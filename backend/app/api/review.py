@@ -20,6 +20,8 @@ from app.api.review_schemas import (
     ReviewItemSummary,
 )
 from app.api.schemas import ConfidenceBreakdown, SourceChunk
+from app.confidence.scoring import compute_confidence_score
+from app.confidence.signals import ConfidenceSignals
 from app.core.security import require_review_console_token
 from app.db.models.review import ReviewItem
 from app.db.session import get_db
@@ -41,6 +43,18 @@ def _get_review_item_or_404(db: Session, item_id: int) -> ReviewItem:
 
 def _to_detail(item: ReviewItem) -> ReviewItemDetail:
     query = item.query
+    # El desglose se recalcula con los pesos ACTUALES a partir de las
+    # señales guardadas — si los pesos se recalibran (Fase 6), el desglose
+    # que ve el revisor refleja la calibración vigente, no la de cuando se
+    # tomó la decisión original (esa ya quedó fija en `decision`/`rule_applied`).
+    signals = ConfidenceSignals(
+        retrieval_score=query.retrieval_score,
+        retrieval_margin=query.retrieval_margin,
+        support=query.support,
+        needs_human=query.needs_human,
+        citation_valid=query.citation_valid,
+        generation_error=query.generation_error,
+    )
     return ReviewItemDetail(
         id=item.id,
         status=item.status,
@@ -53,14 +67,7 @@ def _to_detail(item: ReviewItem) -> ReviewItemDetail:
         raw_model_answer=query.raw_model_answer,
         decision=query.decision,
         rule_applied=query.rule_applied,
-        confidence=ConfidenceBreakdown(
-            retrieval_score=query.retrieval_score,
-            retrieval_margin=query.retrieval_margin,
-            support=query.support,
-            needs_human=query.needs_human,
-            citation_valid=query.citation_valid,
-            confidence_score=query.confidence_score,
-        ),
+        confidence=ConfidenceBreakdown.from_domain(signals, compute_confidence_score(signals)),
         sources=[
             SourceChunk(
                 chunk_id=qc.chunk_id,

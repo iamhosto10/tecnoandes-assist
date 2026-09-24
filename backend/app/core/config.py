@@ -61,6 +61,13 @@ class Settings(BaseSettings):
     # App
     log_level: str = "INFO"
     backend_port: int = 8000
+    # Orígenes del navegador que pueden llamar /ask directo (sin esto, CORS
+    # bloquea el chat en localhost:3000). Separados por coma en .env.
+    cors_origins: str = "http://localhost:3000"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
 
 @lru_cache

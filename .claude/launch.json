@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "chat",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@tecnoandes/chat", "dev"],
+      "port": 3000
+    }
+  ]
+}

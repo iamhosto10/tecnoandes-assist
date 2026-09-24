@@ -76,14 +76,7 @@ def ask(
         answer=result.customer_answer,
         decision=result.routing.decision,
         rule_applied=result.routing.rule,
-        confidence=ConfidenceBreakdown(
-            retrieval_score=result.signals.retrieval_score,
-            retrieval_margin=result.signals.retrieval_margin,
-            support=generation.support,
-            needs_human=generation.needs_human,
-            citation_valid=generation.citation_valid,
-            confidence_score=result.confidence_score,
-        ),
+        confidence=ConfidenceBreakdown.from_domain(result.signals, result.score_breakdown),
         cited_chunk_ids=generation.cited_chunk_ids,
         sources=[
             SourceChunk(

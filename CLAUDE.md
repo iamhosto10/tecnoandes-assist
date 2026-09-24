@@ -19,6 +19,7 @@ make ingest       # Fase 1 — procesa knowledge_base/ a chunks + embeddings
 make search q="…" # Fase 1 — solo retrieval, sin LLM (para depurar búsqueda)
 make eval         # Fase 6 — corre eval/seed.jsonl y calcula métricas
 make seed-demo    # Fase 7 — carga consultas de ejemplo para la demo
+make chat         # Fase 4 — pnpm install + dev server de apps/chat (localhost:3000)
 ```
 
 Backend fuera de Docker: `cd backend && uv sync && uv run uvicorn app.main:app --reload`.
@@ -105,6 +106,24 @@ sincronice.
     antes de asignarles su posición final. Encontrado por los tests de
     integración de `PUT /documents/{id}` al reemplazar todo el contenido
     de un documento.
+12. **`compute_confidence_score` devuelve el desglose completo, no solo el
+    total.** Cada señal normalizada trae su peso y sus puntos aportados
+    (`ConfidenceScoreBreakdown`), expuesto en la API como
+    `confidence.score_breakdown` — es lo que hace posible mostrar "el
+    cálculo del puntaje" en el modo transparente del chat sin que el
+    frontend tenga que adivinar o duplicar los pesos de `.env`.
+13. **`decision`/`rule_applied`/`status`/`action_type` son `Literal`, no
+    `str`, en los esquemas Pydantic.** Así el OpenAPI genera enums de
+    verdad y `packages/api-client` produce tipos TS reales (`"direct" |
+    "warn" | ...`) en vez de un `string` genérico — se notó al
+    type-checkear `apps/chat` contra el cliente generado.
+14. **Un solo pnpm-workspace.yaml, en la raíz.** `create-next-app` genera
+    su propio `pnpm-workspace.yaml` dentro de `apps/chat` si no detecta
+    uno más arriba en el momento del scaffold — hay que borrarlo y mover
+    cualquier config real (`ignoredBuiltDependencies`, por los build
+    scripts de `sharp`/`unrs-resolver`) a la raíz, o `apps/chat` queda
+    como un workspace pnpm aislado y no puede resolver
+    `@tecnoandes/api-client` como dependencia de workspace.
 
 ## Esquema de base de datos (visión completa; se crea de forma incremental)
 
@@ -125,7 +144,7 @@ Se espera confirmación antes de pasar a la siguiente fase.
 - [x] Fase 1 — Conocimiento y búsqueda
 - [x] Fase 2 — Generación y confianza
 - [x] Fase 3 — Revisión en el backend
-- [ ] Fase 4 — Chat del cliente
+- [x] Fase 4 — Chat del cliente
 - [ ] Fase 5 — Consola del revisor
 - [ ] Fase 6 — Evaluación
 - [ ] Fase 7 — Pulido (dashboard, CI, README, docs, ADRs, demo)

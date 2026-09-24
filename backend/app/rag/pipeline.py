@@ -13,7 +13,7 @@ import anthropic
 from sqlalchemy.orm import Session
 
 from app.confidence.rules import RoutingResult, decide_routing
-from app.confidence.scoring import compute_confidence_score
+from app.confidence.scoring import ConfidenceScoreBreakdown, compute_confidence_score
 from app.confidence.signals import ConfidenceSignals
 from app.rag.embeddings import EmbeddingProvider
 from app.rag.generation import GenerationResult, generate_answer
@@ -33,6 +33,7 @@ class AskPipelineResult:
     chunks: list[RetrievedChunk]
     generation: GenerationResult
     signals: ConfidenceSignals
+    score_breakdown: ConfidenceScoreBreakdown
     confidence_score: float
     routing: RoutingResult
     customer_answer: str
@@ -58,8 +59,8 @@ def run_ask_pipeline(
         citation_valid=generation.citation_valid,
         generation_error=generation.error,
     )
-    confidence_score = compute_confidence_score(signals)
-    routing = decide_routing(signals, confidence_score)
+    score_breakdown = compute_confidence_score(signals)
+    routing = decide_routing(signals, score_breakdown.total)
 
     customer_answer = (
         REVIEW_FALLBACK_ANSWER
@@ -71,7 +72,8 @@ def run_ask_pipeline(
         chunks=chunks,
         generation=generation,
         signals=signals,
-        confidence_score=confidence_score,
+        score_breakdown=score_breakdown,
+        confidence_score=score_breakdown.total,
         routing=routing,
         customer_answer=customer_answer,
     )
