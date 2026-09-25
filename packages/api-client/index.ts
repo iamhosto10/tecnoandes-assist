@@ -25,6 +25,9 @@ export type DocumentVersion = components["schemas"]["DocumentVersionOut"];
 export type DocumentCreateRequest = components["schemas"]["DocumentCreateRequest"];
 export type DocumentUpdateRequest = components["schemas"]["DocumentUpdateRequest"];
 
+export type DashboardSummary = components["schemas"]["DashboardSummaryOut"];
+export type EvaluationRun = components["schemas"]["EvaluationRunOut"];
+
 export type ReviewItemFilters = operations["get_review_items_review_items_get"]["parameters"]["query"];
 
 // Derivado del schema real (ahora un enum de verdad en el OpenAPI) en vez
@@ -132,6 +135,14 @@ export function createApiClient({ baseUrl, reviewToken }: ApiClientOptions) {
         method: "PUT",
         body: JSON.stringify(body),
       });
+    },
+
+    getDashboardSummary(): Promise<DashboardSummary> {
+      return request<DashboardSummary>("/metrics/summary");
+    },
+
+    getEvaluationRuns(): Promise<{ runs: EvaluationRun[] }> {
+      return request("/metrics/evaluation-runs");
     },
   };
 }

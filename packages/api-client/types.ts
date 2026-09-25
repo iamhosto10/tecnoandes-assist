@@ -142,6 +142,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/metrics/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Summary */
+        get: operations["read_summary_metrics_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/metrics/evaluation-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Evaluation Runs */
+        get: operations["read_evaluation_runs_metrics_evaluation_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -255,6 +289,25 @@ export interface components {
             /** @description Detalle de cuánto aportó cada señal al confidence_score. */
             score_breakdown: components["schemas"]["ScoreBreakdown"];
         };
+        /** DashboardSummaryOut */
+        DashboardSummaryOut: {
+            /** Total Queries */
+            total_queries: number;
+            /** Decision Counts */
+            decision_counts: {
+                [key: string]: number;
+            };
+            /** Avg Confidence Score */
+            avg_confidence_score: number | null;
+            /** Avg Latency Ms */
+            avg_latency_ms: number | null;
+            /** Total Cost Usd */
+            total_cost_usd: number;
+            /** Pending Review Count */
+            pending_review_count: number;
+            /** Document Count */
+            document_count: number;
+        };
         /** DocumentCreateRequest */
         DocumentCreateRequest: {
             /** Slug */
@@ -354,6 +407,29 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** EvaluationRunListResponse */
+        EvaluationRunListResponse: {
+            /** Runs */
+            runs: components["schemas"]["EvaluationRunOut"][];
+        };
+        /** EvaluationRunOut */
+        EvaluationRunOut: {
+            /** Id */
+            id: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Metrics */
+            metrics: {
+                [key: string]: unknown;
+            };
+            /** Config Snapshot */
+            config_snapshot: {
+                [key: string]: unknown;
+            };
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -972,6 +1048,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DocumentDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_summary_metrics_summary_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardSummaryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_evaluation_runs_metrics_evaluation_runs_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationRunListResponse"];
                 };
             };
             /** @description Validation Error */

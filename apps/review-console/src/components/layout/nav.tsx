@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/", label: "Cola" },
   { href: "/documents", label: "Base de conocimiento" },
   { href: "/gaps", label: "Brechas" },
+  { href: "/dashboard", label: "Dashboard" },
 ];
 
 export function Nav() {

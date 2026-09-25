@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.ask import router as ask_router
 from app.api.documents import router as documents_router
+from app.api.metrics import router as metrics_router
 from app.api.review import router as review_router
 from app.core.config import get_settings
 
@@ -18,6 +19,7 @@ app.add_middleware(
 app.include_router(ask_router)
 app.include_router(review_router)
 app.include_router(documents_router)
+app.include_router(metrics_router)
 
 
 @app.get("/health")

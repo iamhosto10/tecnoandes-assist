@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: tecnoandes
+          POSTGRES_PASSWORD: change-me
+          POSTGRES_DB: tecnoandes
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tecnoandes"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Sin ANTHROPIC_API_KEY a propósito: los tests de integración simulan
+      # el cliente de Anthropic (ver tests/integration/), así que la suite
+      # completa corre sin gastar dinero ni depender de la red — igual que
+      # `make test` en local (ver CLAUDE.md).
+      DATABASE_URL: postgresql+psycopg://tecnoandes:change-me@localhost:5432/tecnoandes
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.12"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Instalar dependencias
+        working-directory: backend
+        run: uv sync --locked
+
+      - name: Aplicar migraciones
+        working-directory: backend
+        run: uv run alembic upgrade head
+
+      - name: Ingerir la base de conocimiento
+        # Varios tests de integración asumen la base de conocimiento real ya
+        # ingerida (retrieval real, sin mock) — mismo requisito que en local
+        # ("necesita make up + make ingest ya corridos", ver los docstrings
+        # de tests/integration/). Descarga el modelo E5 (~470MB) la primera vez.
+        working-directory: backend
+        run: PYTHONPATH=. uv run python scripts/ingest.py
+
+      - name: Lint (ruff)
+        working-directory: backend
+        run: uv run ruff check .
+
+      - name: Tests
+        working-directory: backend
+        run: uv run pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check apps/chat
+        run: pnpm --filter @tecnoandes/chat exec tsc --noEmit
+
+      - name: Type-check apps/review-console
+        run: pnpm --filter @tecnoandes/review-console exec tsc --noEmit
+
+      - name: Lint apps/chat
+        run: pnpm --filter @tecnoandes/chat run lint
+
+      - name: Lint apps/review-console
+        run: pnpm --filter @tecnoandes/review-console run lint

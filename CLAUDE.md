@@ -1,8 +1,10 @@
 # TecnoAndes Assist
 
 RAG con sistema de confianza y revisión humana para una tienda de tecnología ficticia
-(TecnoAndes). Proyecto de portafolio — ver el plan original y las fases en
-`docs/adr/` y `docs/APRENDIZAJE.md` (se agregan en fases posteriores).
+(TecnoAndes). Proyecto de portafolio — ver [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+para el diagrama y el pipeline, [`docs/adr/`](docs/adr/) para el porqué de cada decisión
+estructural, y [`docs/APRENDIZAJE.md`](docs/APRENDIZAJE.md) para el mapa de conceptos de
+RAG -> archivo. El [`README.md`](README.md) raíz es la puerta de entrada de portafolio.
 
 ## Comandos
 
@@ -205,6 +207,25 @@ sincronice.
     preguntar. El costo real es marginal (~$0.02 USD por los 25 casos de
     `eval/seed.jsonl`, a precios de Haiku 4.5), pero el diseño original
     pide explícitamente no gastar plata sin que quede claro que va a pasar.
+24. **`persist_ask_result` se factorizó de `app/api/ask.py` a
+    `app/rag/pipeline.py`** (Fase 7) para que `scripts/seed_demo.py`
+    pudiera generar casos de demo reales sin duplicar la persistencia de
+    `Query`/`QueryChunk`/`ReviewItem` — mismo criterio que ya existía
+    para `run_ask_pipeline` (compartido entre `/ask` y `/retest`).
+25. **El dashboard (`/metrics/summary`, `/metrics/evaluation-runs`) vive
+    en un router nuevo, no dentro de `/review`.** Aunque hoy solo lo
+    consume la consola, es información de operación (volumen, costo,
+    distribución de decisiones, historial de `make eval`), no de un caso
+    puntual — separarlo deja `app/api/review.py` enfocado en la cola.
+    Protegido con el mismo token que `/review` y `/documents`: no es
+    información que deba ver el chat público.
+26. **CI corre `make ingest` antes de los tests** (`.github/workflows/ci.yml`),
+    no solo `alembic upgrade head`. Varios tests de integración asumen
+    retrieval real sobre la base de conocimiento ya ingerida (sin mock de
+    embeddings ni de Postgres, solo el cliente de Anthropic se simula) —
+    mismo requisito que ya tenían esos tests en local ("necesita make up
+    + make ingest corridos"), documentado antes en sus propios docstrings
+    pero nunca antes automatizado.
 
 ## Esquema de base de datos (visión completa; se crea de forma incremental)
 
@@ -231,4 +252,4 @@ Se espera confirmación antes de pasar a la siguiente fase.
 - [x] Fase 4 — Chat del cliente
 - [x] Fase 5 — Consola del revisor
 - [x] Fase 6 — Evaluación
-- [ ] Fase 7 — Pulido (dashboard, CI, README, docs, ADRs, demo)
+- [x] Fase 7 — Pulido (dashboard, CI, README, docs, ADRs, demo)
