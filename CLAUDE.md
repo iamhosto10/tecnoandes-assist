@@ -160,6 +160,51 @@ sincronice.
     guardadas en `queries`, así que el recálculo es reproducible, pero si
     cambias los pesos después de que un caso quedó en la cola, el
     "cálculo del puntaje" que ve el revisor usa los pesos de hoy.
+19. **`routing_correct` en la evaluación solo exige acertar escalar o no
+    escalar, no las cuatro categorías de la escala completa
+    (direct/warn/review/escalate).** `should_escalate=true` en
+    `eval/seed.jsonl` marca reclamos y problemas de pedido/pago, que
+    DEBEN terminar en "escalate"; cualquier otro caso NUNCA debe escalar
+    por error. El resto de la escala depende de umbrales que
+    `make eval` existe justamente para calibrar — exigirle a un caso
+    "debe caer en warn exacto" antes de calibrar sería circular. Escalar
+    mal (o no escalar un reclamo real) es, además, el único error de
+    enrutamiento con consecuencia real para un cliente.
+20. **El juez de la evaluación (`app/evaluation/judge.py`) compara dos
+    textos contra una pregunta puntual — nunca le pide al modelo su
+    propia confianza ni una nota subjetiva.** Es tool use forzado, mismo
+    patrón que la generación (`strict: true`, veredicto
+    correct/partial/incorrect + una razón breve), y solo se llama en
+    casos con `expected_answer`; un caso `should_escalate` se evalúa por
+    `routing_correct`, no por si el mensaje de traspaso "suena bien". El
+    modelo juez es configurable aparte del modelo de generación
+    (`ANTHROPIC_JUDGE_MODEL`, mismo Haiku 4.5 por defecto) para poder
+    calibrar con un juez distinto al que genera si hiciera falta.
+21. **`recall_at_k` es `None`, no `0.0`, cuando un caso no tiene
+    `expected_doc_slugs`.** Aplica a los casos `should_escalate` y a los
+    "fuera de alcance" (preguntas que a propósito no están en la base de
+    conocimiento) — ahí "no encontrar ningún documento esperado" es el
+    comportamiento correcto, no un fallo de retrieval. `aggregate_metrics`
+    promedia solo sobre los casos donde la métrica aplica (mismo criterio
+    para `judge_correct_rate`), para que corridas con muchos casos de
+    escalamiento no arrastren el promedio hacia abajo de forma artificial.
+22. **La migración de las tablas de evaluación se escribió a mano, no con
+    el autogenerado de Alembic tal cual salió.** `alembic revision
+    --autogenerate` detectó drift preexistente entre los modelos y la
+    base (columnas de timestamp sin timezone, la columna generada
+    `content_tsv` que no está mapeada en el ORM, índices/constraints que
+    ya no coinciden) que no tiene nada que ver con esta fase — se
+    descartó ese ruido y la migración final solo crea las tres tablas
+    nuevas, mismo criterio que la migración de `review_items` (Fase 3).
+    Si una fase futura autogenera una migración, hay que revisar el
+    diff con cuidado antes de aplicarlo, no confiar en él a ciegas.
+23. **`make eval` es interactivo y pide confirmación antes de gastar
+    dinero real** (a menos que se pase `--yes`) — es el único script del
+    proyecto que llama a la API de Anthropic de verdad sin que un humano
+    esté mirando una demo en vivo; un costo estimado se imprime antes de
+    preguntar. El costo real es marginal (~$0.02 USD por los 25 casos de
+    `eval/seed.jsonl`, a precios de Haiku 4.5), pero el diseño original
+    pide explícitamente no gastar plata sin que quede claro que va a pasar.
 
 ## Esquema de base de datos (visión completa; se crea de forma incremental)
 
@@ -168,7 +213,10 @@ sincronice.
 - **Consultas y confianza** (Fase 2): `queries` (todas las señales + decisión),
   `retrieved_chunks` (detalle por consulta, para el "modo transparente").
 - **Revisión** (Fase 3): `review_items`, `review_actions`.
-- **Evaluación** (Fase 6): `evaluation_cases`, `evaluation_runs`, `evaluation_results`.
+- **Evaluación** (Fase 6): `evaluation_cases` (pregunta + respuesta/documentos
+  esperados + `should_escalate`), `evaluation_runs` (`config_snapshot` +
+  `metrics` agregadas por corrida), `evaluation_results` (un resultado por
+  caso, con `recall_at_k` y el veredicto del juez cuando aplica).
 
 ## Fases
 
@@ -182,5 +230,5 @@ Se espera confirmación antes de pasar a la siguiente fase.
 - [x] Fase 3 — Revisión en el backend
 - [x] Fase 4 — Chat del cliente
 - [x] Fase 5 — Consola del revisor
-- [ ] Fase 6 — Evaluación
+- [x] Fase 6 — Evaluación
 - [ ] Fase 7 — Pulido (dashboard, CI, README, docs, ADRs, demo)

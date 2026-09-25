@@ -1,6 +1,6 @@
 # TecnoAndes Assist
 
-> Placeholder de la Fase 5. El README de portafolio (problema/solución, capturas,
+> Placeholder de la Fase 6. El README de portafolio (problema/solución, capturas,
 > diagrama de arquitectura, resultados reales de `make eval`, limitaciones) se
 > escribe en la Fase 7, con datos reales en vez de estos de ejemplo.
 
@@ -8,7 +8,7 @@ RAG con sistema de confianza y revisión humana para una tienda de tecnología
 colombiana ficticia. Ver [`CLAUDE.md`](CLAUDE.md) para comandos, convenciones y
 decisiones de arquitectura.
 
-## Quickstart (estado actual: Fase 5 — consola del revisor)
+## Quickstart (estado actual: Fase 6 — evaluación)
 
 ```bash
 cp .env.example .env        # completa ANTHROPIC_API_KEY y las contraseñas
@@ -18,6 +18,7 @@ make ingest                  # procesa knowledge_base/*.md a chunks + embeddings
 make search q="hay sede en Cali?"   # solo retrieval, sin LLM
 make chat                    # chat del cliente en localhost:3000
 make review-console          # consola del revisor en localhost:3001
+make eval                    # corre eval/seed.jsonl contra el pipeline real (necesita API key)
 ```
 
 Sin `ANTHROPIC_API_KEY` configurada, `/ask` sigue respondiendo `200` (nunca un
@@ -40,3 +41,13 @@ documento existente con vista de diferencias), re-probar un caso ya resuelto
 (comparación antes/después), un editor de la base de conocimiento con
 historial de versiones, y una vista de "brechas de conocimiento" que agrupa
 por similitud las preguntas sin soporte para sugerir qué documentos faltan.
+
+`make eval` corre los 25 casos de [`eval/seed.jsonl`](eval/seed.jsonl) contra
+el pipeline real (retrieval + generación + enrutamiento) y persiste los
+resultados: `recall@k` por caso (¿el retrieval trajo el documento esperado?),
+si el enrutamiento acertó escalando o no un reclamo, y el veredicto de un
+LLM juez sobre si la respuesta coincide con la esperada. Sirve para calibrar
+los pesos/umbrales de confianza en `.env` con datos en vez de a ojo — a
+diferencia de `make test`, sí llama a la API de Anthropic de verdad y pide
+confirmación antes de gastar (el costo real es marginal, unos centavos de
+dólar).

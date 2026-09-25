@@ -30,6 +30,14 @@ class Settings(BaseSettings):
     # Aquí, no hardcodeado en generation.py, para poder actualizarlos sin tocar código.
     anthropic_input_price_per_mtok: float = 1.00
     anthropic_output_price_per_mtok: float = 5.00
+    # Modelo que hace de juez en `make eval` (Fase 6), comparando la respuesta
+    # real contra la esperada. Mismo modelo barato que la generación por
+    # defecto — el juicio ("¿esta respuesta dice lo mismo que la esperada?")
+    # no necesita un modelo más grande, y así el costo de evaluar no se
+    # dispara. Configurable aparte por si se quiere calibrar con un juez
+    # distinto al que genera (evita que el mismo modelo se "audite a sí
+    # mismo" de forma demasiado indulgente).
+    anthropic_judge_model: str = "claude-haiku-4-5-20251001"
 
     # Embeddings
     embedding_model: str = "intfloat/multilingual-e5-small"
