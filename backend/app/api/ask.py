@@ -81,6 +81,7 @@ def ask(
         sources=[
             SourceChunk(
                 chunk_id=c.chunk_id,
+                document_id=c.document_id,
                 document_slug=c.document_slug,
                 document_title=c.document_title,
                 heading_path=c.heading_path,

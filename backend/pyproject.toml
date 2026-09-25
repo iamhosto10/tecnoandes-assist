@@ -16,6 +16,8 @@ dependencies = [
     "sentence-transformers>=3.3",
     "torch>=2.2",
     "python-frontmatter>=1.1",
+    "numpy>=1.26",
+    "scikit-learn>=1.5",
 ]
 
 [dependency-groups]

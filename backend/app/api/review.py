@@ -11,6 +11,9 @@ from fastapi import Query as QueryParam
 from sqlalchemy.orm import Session
 
 from app.api.review_schemas import (
+    KnowledgeGapGroup as KnowledgeGapGroupOut,
+)
+from app.api.review_schemas import (
     RetestResponse,
     RetestSnapshot,
     ReviewActionOut,
@@ -29,6 +32,7 @@ from app.rag.embeddings import EmbeddingProvider, get_embedding_provider
 from app.rag.generation import get_anthropic_client
 from app.rag.pipeline import run_ask_pipeline
 from app.review.actions import NewDocumentInput, ReviewActionError, apply_review_action
+from app.review.gaps import find_knowledge_gaps
 from app.review.queue import list_review_items
 
 router = APIRouter(prefix="/review", dependencies=[Depends(require_review_console_token)])
@@ -71,6 +75,7 @@ def _to_detail(item: ReviewItem) -> ReviewItemDetail:
         sources=[
             SourceChunk(
                 chunk_id=qc.chunk_id,
+                document_id=qc.chunk.document_id,
                 document_slug=qc.chunk.document.slug,
                 document_title=qc.chunk.document.title,
                 heading_path=qc.chunk.heading_path,
@@ -213,3 +218,21 @@ def retest_review_item(
             support=result.generation.support,
         ),
     )
+
+
+@router.get("/knowledge-gaps", response_model=list[KnowledgeGapGroupOut])
+def get_knowledge_gaps(
+    min_group_size: int = QueryParam(default=2, ge=1),
+    db: Session = Depends(get_db),
+    embedding_provider: EmbeddingProvider = Depends(get_embedding_provider),
+) -> list[KnowledgeGapGroupOut]:
+    groups = find_knowledge_gaps(db, embedding_provider, min_group_size=min_group_size)
+    return [
+        KnowledgeGapGroupOut(
+            representative_question=g.representative_question,
+            count=g.count,
+            example_questions=g.example_questions,
+            query_ids=g.query_ids,
+        )
+        for g in groups
+    ]

@@ -57,13 +57,17 @@ class Settings(BaseSettings):
 
     # Consola de revisión (auth simple de un solo token; ver docs/adr)
     review_console_token: str = "change-me-too"
+    # Umbral de distancia coseno para agrupar brechas de conocimiento
+    # (preguntas con support=none). Heurística inicial sin calibrar contra
+    # datos reales todavía — más bajo agrupa menos (más estricto).
+    knowledge_gap_distance_threshold: float = 0.15
 
     # App
     log_level: str = "INFO"
     backend_port: int = 8000
-    # Orígenes del navegador que pueden llamar /ask directo (sin esto, CORS
-    # bloquea el chat en localhost:3000). Separados por coma en .env.
-    cors_origins: str = "http://localhost:3000"
+    # Orígenes del navegador que pueden llamar /ask o la consola directo
+    # (sin esto, CORS los bloquea). Separados por coma en .env.
+    cors_origins: str = "http://localhost:3000,http://localhost:3001"
 
     @property
     def cors_origins_list(self) -> list[str]:

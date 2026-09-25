@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/review/knowledge-gaps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Knowledge Gaps */
+        get: operations["get_knowledge_gaps_review_knowledge_gaps_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents": {
         parameters: {
             query?: never;
@@ -343,6 +360,23 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** KnowledgeGapGroup */
+        KnowledgeGapGroup: {
+            /**
+             * Representative Question
+             * @description La pregunta más corta del grupo, como formulación representativa.
+             */
+            representative_question: string;
+            /** Count */
+            count: number;
+            /** Example Questions */
+            example_questions: string[];
+            /**
+             * Query Ids
+             * @description Para poder revisar cada caso individual si hace falta.
+             */
+            query_ids: number[];
+        };
         /** NewDocumentPayload */
         NewDocumentPayload: {
             /** Slug */
@@ -541,6 +575,11 @@ export interface components {
         SourceChunk: {
             /** Chunk Id */
             chunk_id: number;
+            /**
+             * Document Id
+             * @description Id del documento fuente — lo que necesita PUT /documents/{id} para editarlo.
+             */
+            document_id: number;
             /**
              * Document Slug
              * @description Slug del documento fuente en knowledge_base/.
@@ -761,6 +800,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RetestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_knowledge_gaps_review_knowledge_gaps_get: {
+        parameters: {
+            query?: {
+                min_group_size?: number;
+            };
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnowledgeGapGroup"][];
                 };
             };
             /** @description Validation Error */

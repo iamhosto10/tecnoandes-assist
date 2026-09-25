@@ -1,4 +1,4 @@
-.PHONY: up down logs migrate db-shell test lint ingest search eval seed-demo chat
+.PHONY: up down logs migrate db-shell test lint ingest search eval seed-demo chat review-console
 
 up:
 	docker compose up -d --build
@@ -50,3 +50,9 @@ seed-demo:
 chat:
 	pnpm install
 	pnpm --filter @tecnoandes/chat dev
+
+# Fase 5 — consola del revisor (Next.js, localhost:3001). Pide el token de
+# REVIEW_CONSOLE_TOKEN (.env en la raíz) para iniciar sesión.
+review-console:
+	pnpm install
+	pnpm --filter @tecnoandes/review-console dev

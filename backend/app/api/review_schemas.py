@@ -153,3 +153,14 @@ class DocumentUpdateRequest(BaseModel):
     changed_by: str = "reviewer"
     reason: str = ""
     review_item_id: int | None = None
+
+
+class KnowledgeGapGroup(BaseModel):
+    representative_question: str = Field(
+        description="La pregunta más corta del grupo, como formulación representativa."
+    )
+    count: int
+    example_questions: list[str]
+    query_ids: list[int] = Field(
+        description="Para poder revisar cada caso individual si hace falta."
+    )

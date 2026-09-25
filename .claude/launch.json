@@ -6,6 +6,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@tecnoandes/chat", "dev"],
       "port": 3000
+    },
+    {
+      "name": "review-console",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@tecnoandes/review-console", "dev"],
+      "port": 3001
     }
   ]
 }

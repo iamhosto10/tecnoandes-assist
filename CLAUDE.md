@@ -19,7 +19,8 @@ make ingest       # Fase 1 — procesa knowledge_base/ a chunks + embeddings
 make search q="…" # Fase 1 — solo retrieval, sin LLM (para depurar búsqueda)
 make eval         # Fase 6 — corre eval/seed.jsonl y calcula métricas
 make seed-demo    # Fase 7 — carga consultas de ejemplo para la demo
-make chat         # Fase 4 — pnpm install + dev server de apps/chat (localhost:3000)
+make chat             # Fase 4 — pnpm install + dev server de apps/chat (localhost:3000)
+make review-console  # Fase 5 — pnpm install + dev server de apps/review-console (localhost:3001)
 ```
 
 Backend fuera de Docker: `cd backend && uv sync && uv run uvicorn app.main:app --reload`.
@@ -123,7 +124,42 @@ sincronice.
     cualquier config real (`ignoredBuiltDependencies`, por los build
     scripts de `sharp`/`unrs-resolver`) a la raíz, o `apps/chat` queda
     como un workspace pnpm aislado y no puede resolver
-    `@tecnoandes/api-client` como dependencia de workspace.
+    `@tecnoandes/api-client` como dependencia de workspace. Pasó de nuevo
+    al scaffolding de `apps/review-console` — mismo síntoma, misma
+    corrección; es un gotcha recurrente de `create-next-app`, no algo
+    puntual de la primera app.
+15. **Base UI (`@base-ui/react`), no Radix, detrás de shadcn/ui.** El
+    generador de shadcn eligió Base UI para este proyecto. Dos diferencias
+    que rompen el hábito de Radix:
+    - `Button` no tiene prop `asChild`; se compone con `render={<X/>}` en
+      su lugar (`DialogTrigger render={<Button>...</Button>} />`, etc.).
+    - `Button` **nunca** debe envolver un `<Link>` — la documentación de
+      Base UI lo prohíbe explícitamente (rompe accesibilidad: "expected a
+      native `<button>`"). Para un link con estilo de botón se aplica
+      `buttonVariants({...})` como `className` directo sobre el `<Link>`,
+      no se anida un `Button` alrededor.
+16. **`Select.Value` de Base UI muestra el `value` crudo, no la label del
+    `SelectItem` seleccionado** (a diferencia de Radix, que sí la infiere
+    solas). Hay que mapear a mano con el patrón de children-como-función:
+    `<SelectValue>{(value) => LABELS[value] ?? fallback}</SelectValue>`.
+    Se encontró probando en vivo (mostraba el id numérico del documento y
+    hubiera mostrado literales como `needs_human` en el filtro de la cola).
+    `REASON_LABELS` se exporta una sola vez desde `badges.tsx` y se reusa
+    en el filtro de la cola para no duplicar las etiquetas en español.
+17. **Brechas de conocimiento: clustering con `AgglomerativeClustering`
+    (scikit-learn), no un umbral manual de coseno.** `distance_threshold`
+    en vez de `n_clusters` (no se sabe cuántos grupos hay de antemano),
+    métrica coseno, linkage promedio. Solo agrupa preguntas con
+    `support="none"`; el representante de cada grupo es la pregunta más
+    corta (mejor candidata a título de un documento nuevo). Umbral
+    configurable vía `KNOWLEDGE_GAP_DISTANCE_THRESHOLD` (`.env`).
+18. **La consola de revisión recalcula el desglose de confianza con los
+    pesos ACTUALES de `.env`, no con los que estaban vigentes cuando se
+    creó el caso.** Simplificación aceptada para la demo — las señales
+    crudas (`retrieval_score`, `retrieval_margin`, `support`) sí quedan
+    guardadas en `queries`, así que el recálculo es reproducible, pero si
+    cambias los pesos después de que un caso quedó en la cola, el
+    "cálculo del puntaje" que ve el revisor usa los pesos de hoy.
 
 ## Esquema de base de datos (visión completa; se crea de forma incremental)
 
@@ -145,6 +181,6 @@ Se espera confirmación antes de pasar a la siguiente fase.
 - [x] Fase 2 — Generación y confianza
 - [x] Fase 3 — Revisión en el backend
 - [x] Fase 4 — Chat del cliente
-- [ ] Fase 5 — Consola del revisor
+- [x] Fase 5 — Consola del revisor
 - [ ] Fase 6 — Evaluación
 - [ ] Fase 7 — Pulido (dashboard, CI, README, docs, ADRs, demo)

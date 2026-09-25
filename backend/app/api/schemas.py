@@ -41,6 +41,9 @@ class AskRequest(BaseModel):
 
 class SourceChunk(BaseModel):
     chunk_id: int
+    document_id: int = Field(
+        description="Id del documento fuente — lo que necesita PUT /documents/{id} para editarlo."
+    )
     document_slug: str = Field(description="Slug del documento fuente en knowledge_base/.")
     document_title: str
     heading_path: str = Field(description="Breadcrumb de encabezados dentro del documento.")
