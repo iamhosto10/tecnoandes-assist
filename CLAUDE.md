@@ -226,6 +226,31 @@ sincronice.
     mismo requisito que ya tenían esos tests en local ("necesita make up
     + make ingest corridos"), documentado antes en sus propios docstrings
     pero nunca antes automatizado.
+27. **`hybrid_search` trae un documento COMPLETO cuando domina claramente
+    el top de candidatos ("parent-document retrieval"), en vez de subir
+    `top_k` para todas las preguntas.** Apareció al ampliar el catálogo:
+    con `productos-celulares` en 13 chunks y `top_k=5`, "¿qué celulares
+    tienen?" solo traía 2-3 celulares de 12 reales. Subir `top_k` global
+    arregla eso pero encarece TODAS las preguntas, incluidas las puntuales
+    que solo necesitan 1 chunk. La solución detecta el patrón por
+    documento en vez de globalmente: si el documento dominante del top 10
+    de candidatos se lleva más del 70% de ellos (`DOCUMENT_MERGE_MIN_SHARE`
+    en `app/rag/retrieval.py`), se trae ese documento completo — el resto
+    de preguntas no se ve afectado.
+    Un umbral por CONTEO simple ("aparece 3+ veces") no sirve: productos
+    de una misma categoría son tan parecidos en texto que hasta una
+    pregunta puntual ("¿cuánto cuesta el iPhone 13?") trae 3-4 celulares
+    más entre los candidatos, sin que eso signifique "trae el catálogo
+    completo" — el chunk correcto sigue siendo, con claridad, el más
+    relevante. Se necesitó medir empíricamente (contando cuántos de los
+    top-10 candidatos eran del mismo documento, en preguntas puntuales
+    reales vs. preguntas amplias reales) para encontrar que una MAYORÍA
+    holgada (>70%), no una pluralidad, es lo que de verdad separa los dos
+    casos. Sigue siendo un heurístico, no una regla exacta: prioriza no
+    encarecer las preguntas puntuales por encima de detectar cada
+    pregunta amplia posible (una pregunta amplia frase de forma ambigua
+    puede no disparar el merge y quedarse con el comportamiento anterior,
+    en vez de un falso positivo que le suba el costo a una puntual).
 
 ## Esquema de base de datos (visión completa; se crea de forma incremental)
 
