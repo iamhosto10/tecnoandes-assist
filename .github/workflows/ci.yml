@@ -79,6 +79,19 @@ jobs:
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
 
+      # Next.js genera tipos globales (p.ej. `LayoutProps`) dentro de
+      # `.next/types/` la primera vez que corre `next dev` o `next build`
+      # — nunca en un checkout limpio como el de CI. Sin este paso, `tsc`
+      # falla con "Cannot find name 'LayoutProps'" aunque el código esté
+      # bien (pasaba en local solo porque `.next/` ya existía de correr
+      # `next dev` antes). `next typegen` genera esos tipos sin necesitar
+      # un build completo.
+      - name: Generar tipos de rutas de Next.js (apps/chat)
+        run: pnpm --filter @tecnoandes/chat exec next typegen
+
+      - name: Generar tipos de rutas de Next.js (apps/review-console)
+        run: pnpm --filter @tecnoandes/review-console exec next typegen
+
       - name: Type-check apps/chat
         run: pnpm --filter @tecnoandes/chat exec tsc --noEmit
 
